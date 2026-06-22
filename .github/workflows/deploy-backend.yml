@@ -56,3 +56,4 @@ jobs:
           region: ${{ env.REGION }}
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/cloud-run-source-deploy/${{ env.SERVICE_NAME }}:${{ github.sha }}
           env_vars: API_SECRET_KEY=${{ secrets.API_SECRET_KEY }}
+          flags: --allow-unauthenticated
