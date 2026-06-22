@@ -24,10 +24,11 @@ async function handleAction(tab) {
       const payload = results[0].result;
       
       // Send to backend
-      const response = await fetch('http://localhost:8080/api/terms', {
+      const response = await fetch('https://terms-logger-backend-mgwct7ax7q-lm.a.run.app/api/terms', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'x-api-key': 'SuperSecretAnkiToken123'
         },
         body: JSON.stringify(payload)
       });

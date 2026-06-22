@@ -1,3 +1,4 @@
+require('dotenv').config();
 const Fastify = require('fastify');
 const cors = require('@fastify/cors');
 
@@ -11,6 +12,18 @@ fastify.register(cors, {
 });
 
 fastify.post('/api/terms', async (request, reply) => {
+  const apiKey = request.headers['x-api-key'];
+  const expectedKey = process.env.API_SECRET_KEY;
+
+  if (!expectedKey) {
+    fastify.log.warn('API_SECRET_KEY is not configured on the server!');
+  }
+
+  if (apiKey !== expectedKey) {
+    fastify.log.warn({ ip: request.ip }, 'Unauthorized attempt to access /api/terms');
+    return reply.status(401).send({ error: 'Unauthorized' });
+  }
+
   const payload = request.body;
   fastify.log.info({ payload }, 'Received terms payload');
   console.log('--- NEW TERMS RECEIVED ---');
