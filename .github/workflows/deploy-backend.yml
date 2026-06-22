@@ -12,6 +12,10 @@ env:
   REGION: europe-central2
   SERVICE_NAME: terms-logger-backend
 
+permissions:
+  contents: 'read'
+  id-token: 'write'
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
