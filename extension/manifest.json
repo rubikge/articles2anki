@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Terms Logger Scaffold",
+  "version": "1.0",
+  "description": "Extracts page title and URL to log to the backend.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Send Terms to Backend"
+  }
+}

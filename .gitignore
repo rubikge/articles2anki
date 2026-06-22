@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+
+# Agent configurations and artifacts
+.agents/
+.gemini/
+
+# System generated files
+.DS_Store
+Thumbs.db
