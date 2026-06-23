@@ -1,0 +1,47 @@
+◇ injected env (2) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+{"level":30,"time":1782196227998,"pid":23278,"hostname":"sergei-privalov-zenbook","msg":"Server listening at http://127.0.0.1:8080"}
+Server is running on http://localhost:8080
+{"level":30,"time":1782196227999,"pid":23278,"hostname":"sergei-privalov-zenbook","msg":"Server listening at http://192.168.1.117:8080"}
+{"level":30,"time":1782196227999,"pid":23278,"hostname":"sergei-privalov-zenbook","msg":"Server listening at http://172.17.0.1:8080"}
+{"level":30,"time":1782196227999,"pid":23278,"hostname":"sergei-privalov-zenbook","msg":"Server listening at http://192.168.231.15:8080"}
+{"level":30,"time":1782196230701,"pid":23278,"hostname":"sergei-privalov-zenbook","reqId":"req-1","req":{"method":"POST","url":"/api/terms","host":"localhost:8080","remoteAddress":"127.0.0.1","remotePort":49210},"msg":"incoming request"}
+--- NEW TERMS RECEIVED ---
+{
+  "url": "https://example.com"
+}
+--------------------------
+Downloading page via Firecrawl: https://example.com
+{"level":30,"time":1782196230704,"pid":23278,"hostname":"sergei-privalov-zenbook","payload":{"url":"https://example.com"},"msg":"Received terms payload"}
+Page successfully downloaded via Firecrawl.
+--- FIRECRAWL RESPONSE STRUCTURE ---
+{
+  "success": true,
+  "data": {
+    "markdownLength": 167,
+    "htmlLength": 0,
+    "metadata": [
+      "viewport",
+      "language",
+      "title",
+      "favicon",
+      "scrapeId",
+      "sourceURL",
+      "url",
+      "statusCode",
+      "contentType",
+      "proxyUsed",
+      "cacheState",
+      "cachedAt",
+      "creditsUsed",
+      "concurrencyLimited"
+    ]
+  }
+}
+--- CONTENT START (500 chars) ---
+# Example Domain
+
+This domain is for use in documentation examples without needing permission. Avoid use in operations.
+
+[Learn more](https://iana.org/domains/example)
+---------------------------------
+{"level":30,"time":1782196238072,"pid":23278,"hostname":"sergei-privalov-zenbook","reqId":"req-1","res":{"statusCode":200},"responseTime":7370.678096000105,"msg":"request completed"}

@@ -1,6 +1,7 @@
 require('dotenv').config();
 const Fastify = require('fastify');
 const cors = require('@fastify/cors');
+const { fetchPageContent } = require('./services/scraper');
 
 const fastify = Fastify({
   logger: true
@@ -29,6 +30,22 @@ fastify.post('/api/terms', async (request, reply) => {
   console.log('--- NEW TERMS RECEIVED ---');
   console.log(JSON.stringify(payload, null, 2));
   console.log('--------------------------');
+
+  if (payload && payload.url) {
+    const fetchResult = await fetchPageContent(payload.url);
+    if (fetchResult) {
+      console.log('--- FIRECRAWL RESPONSE STRUCTURE ---');
+      console.log(JSON.stringify(fetchResult.rawResponseStructure, null, 2));
+      console.log('--- CONTENT START (500 chars) ---');
+      console.log(fetchResult.content.substring(0, 500));
+      console.log('---------------------------------');
+    } else {
+      console.log('Failed to fetch page content from Firecrawl.');
+    }
+  } else {
+    console.log('No URL found in the payload.');
+  }
+
   return { success: true };
 });
 
