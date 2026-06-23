@@ -2,6 +2,7 @@ require('dotenv').config();
 const Fastify = require('fastify');
 const cors = require('@fastify/cors');
 const { fetchPageContent } = require('./services/scraper');
+const anki = require('./services/anki');
 
 const fastify = Fastify({
   logger: true
@@ -32,21 +33,64 @@ fastify.post('/api/terms', async (request, reply) => {
   console.log('--------------------------');
 
   if (payload && payload.url) {
-    const fetchResult = await fetchPageContent(payload.url);
-    if (fetchResult) {
-      console.log('--- FIRECRAWL RESPONSE STRUCTURE ---');
-      console.log(JSON.stringify(fetchResult.rawResponseStructure, null, 2));
-      console.log('--- CONTENT START (500 chars) ---');
-      console.log(fetchResult.content.substring(0, 500));
-      console.log('---------------------------------');
-    } else {
-      console.log('Failed to fetch page content from Firecrawl.');
-    }
-  } else {
-    console.log('No URL found in the payload.');
-  }
+    const deckName = payload.title || process.env.DEFAULT_ANKI_DECK || 'Articles2Anki';
 
-  return { success: true };
+    // 1. Synchronous duplicate check
+    try {
+      const existingDecks = await anki.getDeckNames();
+      if (existingDecks.includes(deckName)) {
+        fastify.log.warn(`Deck "${deckName}" already exists. Rejecting.`);
+        return reply.status(409).send({ error: 'Колода уже есть' });
+      }
+    } catch (err) {
+      fastify.log.error('Failed to communicate with AnkiConnect: ' + err.message);
+      return reply.status(500).send({ error: 'AnkiConnect unreachable' });
+    }
+
+    // 2. Send immediate response
+    reply.send({ success: true, message: 'Processing started' });
+
+    // 3. Asynchronous background processing
+    (async () => {
+      try {
+        fastify.log.info(`Background: Fetching page content for ${payload.url}`);
+        const fetchResult = await fetchPageContent(payload.url);
+        
+        let backContent = 'No content extracted.';
+        if (fetchResult && fetchResult.content) {
+          backContent = fetchResult.content.substring(0, 300) + '...';
+        }
+
+        fastify.log.info(`Background: Creating deck "${deckName}"`);
+        await anki.createDeck(deckName);
+
+        fastify.log.info(`Background: Adding card to deck "${deckName}"`);
+        const notes = [{
+          deckName: deckName,
+          modelName: "Basic",
+          fields: {
+            "Front": payload.title || payload.url,
+            "Back": backContent
+          },
+          options: {
+            allowDuplicate: false
+          },
+          tags: ["articles2anki"]
+        }];
+        await anki.addNotes(notes);
+
+        fastify.log.info(`Background: Syncing AnkiWeb`);
+        await anki.sync();
+        fastify.log.info(`Background: Processing complete for "${deckName}"`);
+      } catch (err) {
+        fastify.log.error('Background task failed: ' + err.message);
+      }
+    })();
+    return; // Response already sent
+  } else {
+    fastify.log.warn('No URL found in the payload.');
+    return reply.status(400).send({ error: 'No URL in payload' });
+  }
 });
 
 fastify.get('/', async (request, reply) => {
