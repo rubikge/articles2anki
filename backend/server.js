@@ -2,6 +2,7 @@ require('dotenv').config();
 const Fastify = require('fastify');
 const cors = require('@fastify/cors');
 const { fetchPageContent } = require('./services/scraper');
+const { extractTerms } = require('./services/gemini');
 const anki = require('./services/anki');
 
 const fastify = Fastify({
@@ -12,6 +13,19 @@ const fastify = Fastify({
 fastify.register(cors, {
   origin: '*'
 });
+
+/**
+ * Sanitizes deck name by replacing illegal Anki characters (\/*?:"<>|) with a space.
+ * Split by '::' to preserve the hierarchical separator during deck path building.
+ */
+function sanitizeDeckName(name) {
+  if (!name) return '';
+  return name
+    .split('::')
+    .map(part => part.replace(/[\\/*?:"<>|]/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join('::');
+}
 
 fastify.post('/api/terms', async (request, reply) => {
   const apiKey = request.headers['x-api-key'];
@@ -26,6 +40,12 @@ fastify.post('/api/terms', async (request, reply) => {
     return reply.status(401).send({ error: 'Unauthorized' });
   }
 
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  if (!geminiApiKey || geminiApiKey === 'YOUR_GEMINI_API_KEY') {
+    fastify.log.error('GEMINI_API_KEY is not configured on the server!');
+    return reply.status(500).send({ error: 'Gemini API key is not configured' });
+  }
+
   const payload = request.body;
   fastify.log.info({ payload }, 'Received terms payload');
   console.log('--- NEW TERMS RECEIVED ---');
@@ -33,13 +53,22 @@ fastify.post('/api/terms', async (request, reply) => {
   console.log('--------------------------');
 
   if (payload && payload.url) {
-    const deckName = payload.title || process.env.DEFAULT_ANKI_DECK || 'Articles2Anki';
+    const parentDeck = process.env.ANKI_PARENT_DECK;
+    const title = payload.title || 'Untitled Article';
+    let deckName;
+    if (parentDeck) {
+      const sanitizedParent = sanitizeDeckName(parentDeck);
+      const sanitizedTitle = sanitizeDeckName(title);
+      deckName = `${sanitizedParent}::${sanitizedTitle}`;
+    } else {
+      deckName = sanitizeDeckName(title || process.env.DEFAULT_ANKI_DECK || 'Articles2Anki');
+    }
 
     // 1. Synchronous duplicate check
     try {
       const existingDecks = await anki.getDeckNames();
-      if (existingDecks.includes(deckName)) {
-        fastify.log.warn(`Deck "${deckName}" already exists. Rejecting.`);
+      if (existingDecks.some(d => d.toLowerCase() === deckName.toLowerCase())) {
+        fastify.log.warn(`Deck "${deckName}" already exists (case-insensitive check). Rejecting.`);
         return reply.status(409).send({ error: 'Колода уже есть' });
       }
     } catch (err) {
@@ -56,27 +85,43 @@ fastify.post('/api/terms', async (request, reply) => {
         fastify.log.info(`Background: Fetching page content for ${payload.url}`);
         const fetchResult = await fetchPageContent(payload.url);
         
-        let backContent = 'No content extracted.';
-        if (fetchResult && fetchResult.content) {
-          backContent = fetchResult.content.substring(0, 300) + '...';
+        if (!fetchResult || !fetchResult.content) {
+          fastify.log.error('Background: Scraping failed or returned empty content. Aborting.');
+          return;
+        }
+
+        fastify.log.info(`Background: Extracting terms using Gemini...`);
+        let terms = [];
+        try {
+          terms = await extractTerms(fetchResult.content);
+        } catch (err) {
+          fastify.log.error(`Background: Gemini term extraction failed: ${err.message}`);
+          return;
+        }
+
+        if (!terms || terms.length === 0) {
+          fastify.log.warn('Background: No technical terms extracted from the page.');
+          return;
         }
 
         fastify.log.info(`Background: Creating deck "${deckName}"`);
         await anki.createDeck(deckName);
 
-        fastify.log.info(`Background: Adding card to deck "${deckName}"`);
-        const notes = [{
+        fastify.log.info(`Background: Generating notes for ${terms.length} terms`);
+        const notes = terms.map(t => ({
           deckName: deckName,
           modelName: "Basic",
           fields: {
-            "Front": payload.title || payload.url,
-            "Back": backContent
+            "Front": t.term,
+            "Back": t.definition
           },
           options: {
             allowDuplicate: false
           },
           tags: ["articles2anki"]
-        }];
+        }));
+
+        fastify.log.info(`Background: Adding notes to deck "${deckName}"`);
         await anki.addNotes(notes);
 
         fastify.log.info(`Background: Syncing AnkiWeb`);
@@ -110,3 +155,4 @@ const start = async () => {
 };
 
 start();
+
