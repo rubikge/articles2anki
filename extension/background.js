@@ -1,3 +1,8 @@
+const IS_LOCAL = true; // Поменяйте на false перед релизом в прод
+const API_URL = IS_LOCAL 
+  ? 'http://localhost:8080/api/terms' 
+  : 'https://terms-logger-backend-mgwct7ax7q-lm.a.run.app/api/terms';
+
 async function handleAction(tab) {
   // Prevent injection on restricted pages
   if (tab.url && (tab.url.startsWith("chrome://") || tab.url.startsWith("edge://"))) return;
@@ -24,7 +29,7 @@ async function handleAction(tab) {
       const payload = results[0].result;
       
       // Send to backend
-      const response = await fetch('https://terms-logger-backend-mgwct7ax7q-lm.a.run.app/api/terms', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -16,3 +16,15 @@ services:
     environment:
       - NODE_ENV=development
     restart: unless-stopped
+    depends_on:
+      - headless-anki
+
+  headless-anki:
+    image: thisisnttheway/headless-anki:latest
+    container_name: headless-anki
+    ports:
+      - "8765:8765"
+      - "5900:5900"
+    volumes:
+      - /home/sergei-privalov/.local/share/Anki2:/data
+    restart: unless-stopped
