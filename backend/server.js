@@ -1,7 +1,6 @@
 require('dotenv').config();
 const Fastify = require('fastify');
 const cors = require('@fastify/cors');
-const { fetchPageContent } = require('./services/scraper');
 const { extractTerms } = require('./services/gemini');
 const anki = require('./services/anki');
 
@@ -82,18 +81,15 @@ fastify.post('/api/terms', async (request, reply) => {
     // 3. Asynchronous background processing
     (async () => {
       try {
-        fastify.log.info(`Background: Fetching page content for ${payload.url}`);
-        const fetchResult = await fetchPageContent(payload.url);
-        
-        if (!fetchResult || !fetchResult.content) {
-          fastify.log.error('Background: Scraping failed or returned empty content. Aborting.');
+        if (!payload.content) {
+          fastify.log.error('Background: No content received from extension. Aborting.');
           return;
         }
 
         fastify.log.info(`Background: Extracting terms using Gemini...`);
         let terms = [];
         try {
-          terms = await extractTerms(fetchResult.content);
+          terms = await extractTerms(payload.content);
         } catch (err) {
           fastify.log.error(`Background: Gemini term extraction failed: ${err.message}`);
           return;
@@ -116,7 +112,7 @@ fastify.post('/api/terms', async (request, reply) => {
             "Back": t.definition
           },
           options: {
-            allowDuplicate: false
+            allowDuplicate: true
           },
           tags: ["articles2anki"]
         }));

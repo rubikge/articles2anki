@@ -1,4 +1,4 @@
-const ANKICONNECT_URL = process.env.ANKICONNECT_URL || 'http://localhost:8765';
+const ANKICONNECT_URL = process.env.ANKICONNECT_URL || 'http://127.0.0.1:8765';
 
 /**
  * Generic fetch wrapper for AnkiConnect API

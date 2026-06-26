@@ -5,8 +5,19 @@ backend/node_modules/
 # Agent configurations and artifacts
 .agents/
 .gemini/
+task.md
+implementation_plan.md
+walkthrough.md
+*.log
+
+# Sensitive files
+sa-key.json
+.env
+
+# Built artifacts
+extension.zip
+brain/
 
 # System generated files
 .DS_Store
 Thumbs.db
-.env
