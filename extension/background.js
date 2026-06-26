@@ -1,7 +1,4 @@
-const IS_LOCAL = true; // Поменяйте на false перед релизом в прод
-const API_URL = IS_LOCAL 
-  ? 'http://localhost:8080/api/terms' 
-  : 'https://terms-logger-backend-mgwct7ax7q-lm.a.run.app/api/terms';
+const API_URL = 'http://localhost:8080/api/terms';
 
 async function handleAction(tab) {
   // Prevent injection on restricted pages
@@ -14,13 +11,20 @@ async function handleAction(tab) {
       files: ["content.css"]
     });
 
-    // Execute script to get title and url
+    // Execute script to get title, url, and full text content
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      func: () => {
+      func: async () => {
+        // Scroll to the bottom to trigger lazy-loaded content
+        window.scrollTo(0, document.body.scrollHeight);
+        
+        // Wait a short moment for content to load
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
         return {
           title: document.title,
-          url: window.location.href
+          url: window.location.href,
+          content: document.body.innerText
         };
       }
     });
